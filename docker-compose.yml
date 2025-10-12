@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   
   db:
@@ -13,7 +11,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - my.main.app.db-data:/var/lib/postgresql/data
   
   adminer:
     image: adminer
@@ -25,6 +23,7 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    image: my-app:1.0.0
     depends_on:
       - db
       - adminer
@@ -34,4 +33,4 @@ services:
       - 9001:9001
       
 volumes:
-  db-data:
+  my.main.app.db-data:

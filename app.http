@@ -1,5 +1,5 @@
 ### Создание пользователя
-POST http://localhost:8090/users?name=Andrey
+POST http://localhost:8090/users?name=Ivan
 
 ### Получение информации о пользователе
 GET http://localhost:8090/users/info?id=3a7822ce-d466-44a4-8c97-453b9448a1b7
