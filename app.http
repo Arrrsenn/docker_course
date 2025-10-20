@@ -1,8 +1,11 @@
 ### Создание пользователя
-POST http://localhost:8090/users?name=Ivan
+POST http://localhost:8085/users?name=Ivan
 
 ### Получение информации о пользователе
-GET http://localhost:8090/users/info?id=3a7822ce-d466-44a4-8c97-453b9448a1b7
+GET http://localhost:8085/users/info?id=3a7822ce-d466-44a4-8c97-453b9448a1b7
 
 ### Получение информации о пользователей
-GET http://localhost:8090/users
+GET http://localhost:8085/users
+
+### healthcheck
+GET http://localhost:8085/healthcheck

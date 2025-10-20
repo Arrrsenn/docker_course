@@ -1,0 +1,12 @@
+.idea
+.git/
+*/target/
+.gitignore
+.gitattributes
+*.iml
+app.http
+mvnw
+mvnw.cmd
+k8s/
+docker-compose.yml
+Dockerfile

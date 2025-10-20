@@ -1,0 +1,201 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-secret
+stringData:
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres123
+  POSTGRES_DB: postgres
+  POSTGRES_URL: jdbc:postgresql://my-db-svc:5432/postgres
+---
+ # Java App
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: my-app
+        image: docker.io/library/my-app:1.0.0
+        env:
+        - name: SPRING_DATASOURCE_URL
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_URL
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_USER
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-secret
+              key: POSTGRES_PASSWORD
+        imagePullPolicy: Never # Always, IfNotPresent, Never
+        ports:
+        - containerPort: 8085
+        startupProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8085
+          initialDelaySeconds: 150
+          failureThreshold: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8085
+          periodSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 8085
+          periodSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+          limits:
+            cpu: 200m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-svc
+spec:
+  selector:
+    app: my-app
+  type: ClusterIP
+  ports:
+  - port: 8085
+    targetPort: 8085
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-app-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: my-app.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: my-app-svc
+            port:
+              number: 8085
+---
+ # DB PostreSQL
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: my-db
+spec:
+  replicas: 1
+  serviceName: my-db
+  selector:
+    matchLabels:
+      app: my-db
+  template:
+    metadata:
+      labels:
+        app: my-db
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: my-db
+        image: postgres:18
+        envFrom:
+        - secretRef:
+            name: db-secret
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/18/data
+          # subPath: postgres
+        resources:
+          requests:
+            cpu: 100m
+            memory: 500Mi
+          limits:
+            cpu: 200m
+            memory: 1Gi
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-db-svc
+spec:
+  selector:
+    app: my-db
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-db-svc-outside
+spec:
+  selector:
+    app: my-db
+  type: NodePort
+  ports:
+  - port: 5432
+    targetPort: 5432
+    nodePort: 30001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-db
+spec:
+  selector:
+    app: my-db
+  clusterIP: None
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+
+
